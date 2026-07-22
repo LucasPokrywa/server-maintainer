@@ -1,0 +1,31 @@
+---
+
+- name: Copie du script
+  ansible.builtin.copy:
+    src: collect_stats
+    dest: /usr/local/bin/collect_stats
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Création du dossier monitor
+  ansible.builtin.file:
+    path: /opt/monitor
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Copie du csv
+  ansible.builtin.copy:
+    src: server_stats.csv
+    dest: /opt/monitor/server_stats.csv
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Ajout du script à cron
+  ansible.builtin.cron:
+    name: ""
+    minute: "15"
+    job: "/usr/local/bin/server_stats"

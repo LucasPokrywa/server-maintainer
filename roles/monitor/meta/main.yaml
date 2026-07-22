@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  author: Lucas Pokrywa
+  description: Configuration d'un suivi d'activité
+
+  license: MIT
+
+  min_ansible_version: "2.15"
+
+  platforms:
+    - name: Debian
+      versions:
+        - trixie
+
+  galaxy_tags:
+    - ssh

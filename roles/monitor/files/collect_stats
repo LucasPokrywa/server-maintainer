@@ -1,0 +1,18 @@
+#!/bin/bash
+
+LOG_FILE="/var/log/server_stats.csv"
+
+DATE=$(date +"%Y-%m-%d")
+TIME=$(date +"%H:%M:%S")
+
+DISK_SPACE=$(df -h / | awk 'NR==2 {print $2}')
+
+DISK_USAGE=$(df -h / | awk 'NR==2 {print $5}')
+
+MEMORY_TOTAL=$(free -m | awk '/Mem:/ {print $2}')
+
+MEMORY_USED=$(free -m | awk '/Mem:/ {print $3}')
+
+CPU_USAGE=$(top -bn1 | awk '/Cpu\(s\)/ {print $2}')
+
+echo "$DATE,$TIME,$DISK_SPACE,$DISK_USAGE,$MEMORY_TOTAL,$MEMORY_USED,$CPU_USAGE" >> "$LOG_FILE"

@@ -1,0 +1,19 @@
+---
+- name: Configuration des serveurs
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Role SSH
+      include_role:
+        name: ssh
+
+    - name: Configuration Cron
+      include_role:
+        name: cron
+
+    - name: Configuration Monitor
+      include_role:
+        name: monitor
+      tags:
+        - Monitor

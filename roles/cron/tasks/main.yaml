@@ -1,0 +1,29 @@
+---
+
+- name: Ajout de cron
+  ansible.builtin.apt:
+    name: cron
+    state: present
+    update_cache: true
+
+- name: Copier le script bash
+  ansible.builtin.copy:
+    src: update_server
+    dest: /usr/local/bin/update_server
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Démarrer et activer cron
+  ansible.builtin.systemd:
+    name: cron
+    state: started
+    enabled: true
+
+- name: Ajouter le script à cron
+  ansible.builtin.cron:
+    name: "Update hebdomadaire"
+    minute: "0"
+    hour: "2"
+    weekday: "0"
+    job: "/bin/bash /usr/local/bin/update_server >> /var/log/update_server.log 2>&1"
