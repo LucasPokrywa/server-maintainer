@@ -7,25 +7,53 @@
     - name: Role SSH
       include_role:
         name: ssh
+        apply:
+          tags:
+            - ssh
+      tags:
+        - ssh
 
     - name: Configuration Cron
       include_role:
         name: cron
+        apply:
+          tags:
+            - cron
+      tags:
+        - cron
 
     - name: Configuration Monitor
       include_role:
         name: monitor
+        apply:
+          tags:
+            - monitor
       tags:
         - monitor
 
     - name: Configuration des ports
       include_role:
         name: ports
+        apply:
+          tags:
+            - ports
       tags:
         - ports
 
     - name: Installation et Configuration des differents packages
       include_role:
         name: packages
+        apply:
+          tags:
+            - packages
       tags:
         - packages
+
+    - name: Installation et Configuration de selinux
+      include_role:
+        name: selinux
+        apply:
+          tags:
+            - selinux
+      tags:
+        - selinux

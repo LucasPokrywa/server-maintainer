@@ -6,7 +6,7 @@
     - debug
 
 - name: Ajout des différents packages 
-  ansible.builtin.apt:
+  ansible.builtin.package:
     name: "{{ item }}"
     state: present
   loop: "{{ packages }}"

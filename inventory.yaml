@@ -1,6 +1,9 @@
 all:
   vars:
     ssh_pubkey: /home/lucas/.ssh/id_ed25519.pub
+    selinux:
+      state: permissive
+      policy: default
   hosts:
     server1:
       ansible_host: 192.168.122.10
@@ -10,9 +13,12 @@ all:
         - port: 22
           protocol: tcp
           comment: SSH
+          selinux: ssh_port_t
         - port: 80
           protocol: tcp
           comment: HTTP
+          selinux_type: http_port_t
+          
       packages:
         - nginx
         - grep

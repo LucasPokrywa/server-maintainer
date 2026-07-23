@@ -1,6 +1,6 @@
 ---
 - name: Verification de la présence d'iptables
-  ansible.builtin.apt:
+  ansible.builtin.package:
     name: iptables
     state: present
 

@@ -1,0 +1,5 @@
+---
+- name: Reboot après activation SELinux
+  ansible.builtin.reboot:
+    reboot_timeout: 100
+    msg: "Redémarrage après activation SELinux"

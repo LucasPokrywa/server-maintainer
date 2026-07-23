@@ -1,0 +1,85 @@
+---
+- name: Installer SELinux (Debian)
+  ansible.builtin.apt:
+    name:
+      - selinux-basics
+      - selinux-policy-default
+      - auditd
+      - policycoreutils
+      - policycoreutils-python-utils
+    state: present
+    update_cache: true
+  when: ansible_facts.os_family == "Debian"
+
+
+- name: Activer SELinux
+  ansible.builtin.command:
+    cmd: selinux-activate
+  register: selinux_activate
+  changed_when: "'already enabled' not in selinux_activate.stdout"
+  notify:
+    - Reboot après activation SELinux
+
+
+- name: Forcer le relabel SELinux au prochain démarrage
+  ansible.builtin.file:
+    path: /.autorelabel
+    state: touch
+  become: true
+  when: selinux_activate.changed
+
+
+- name: Appliquer le reboot SELinux immédiatement
+  ansible.builtin.meta: flush_handlers
+
+
+- name: Configurer SELinux
+  ansible.posix.selinux:
+    policy: "{{ selinux.policy }}"
+    state: "{{ selinux.state }}"
+
+
+- name: Vérifier si le module SELinux sshd_wtmp_journal est déjà installé
+  ansible.builtin.command:
+    cmd: semodule -l
+  register: selinux_modules_list
+  changed_when: false
+  become: true
+
+- name: Générer le module de policy SELinux avec audit2allow
+  ansible.builtin.shell:
+    cmd: ausearch -c 'sshd-session' --raw | audit2allow -M sshd_wtmp_journal
+    chdir: /tmp
+  become: true
+  when: "'sshd_wtmp_journal' not in selinux_modules_list.stdout"
+
+- name: Installer le module de policy SELinux
+  ansible.builtin.command:
+    cmd: semodule -i /tmp/sshd_wtmp_journal.pp
+  become: true
+  when: "'sshd_wtmp_journal' not in selinux_modules_list.stdout"
+
+
+- name: Déclarer le contexte SELinux pour les crontabs
+  community.general.sefcontext:
+    target: '/var/spool/cron/crontabs(/.*)?'
+    setype: cron_spool_t
+    state: present
+  register: sefcontext_cron
+  become: true
+
+- name: Appliquer restorecon sur crontabs
+  ansible.builtin.command:
+    cmd: restorecon -Rv /var/spool/cron/crontabs
+  become: true
+  when: sefcontext_cron.changed
+
+
+- name: Déclarer les ports SELinux
+  community.general.seport:
+    ports: "{{ item.port }}"
+    proto: "{{ item.protocol }}"
+    setype: "{{ item.selinux_type }}"
+    state: present
+  loop: "{{ firewall_rules }}"
+  when: item.selinux_type is defined

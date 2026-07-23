@@ -12,6 +12,14 @@ pip install -r requirements.txt
 
 ansible-galaxy collection install ansible.posix
 
-TAGS="untagged,ssh,cron,monitor,ports,packages"
+TAGS="ssh,cron,monitor,ports,packages"
+
+while getopts "s" opt; do
+    case $opt in
+        s)
+            TAGS="$TAGS,selinux"
+            ;;
+    esac
+done
 
 ansible-playbook -v -i inventory.yaml playbook.yaml -t "$TAGS"
