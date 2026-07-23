@@ -6,3 +6,14 @@ all:
       ansible_host: 192.168.122.10
       ansible_user: debian
       ansible_password: debian
+      firewall_rules:
+        - port: 22
+          protocol: tcp
+          comment: SSH
+        - port: 80
+          protocol: tcp
+          comment: HTTP
+      packages:
+        - nginx
+        - grep
+        - nano

@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: Lucas Pokrywa
+  description: Configuration des packages sur la machine
+
+  license: MIT
+
+  min_ansible_version: "2.15"
+
+  platforms:
+    - name: Debian
+      versions:
+        - trixie
+
+  galaxy_tags:
+    - packages
+    - apt

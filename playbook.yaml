@@ -16,4 +16,16 @@
       include_role:
         name: monitor
       tags:
-        - Monitor
+        - monitor
+
+    - name: Configuration des ports
+      include_role:
+        name: ports
+      tags:
+        - ports
+
+    - name: Installation et Configuration des differents packages
+      include_role:
+        name: packages
+      tags:
+        - packages
