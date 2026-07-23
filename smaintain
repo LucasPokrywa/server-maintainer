@@ -1,0 +1,61 @@
+#!/bin/bash
+
+set -e
+
+usage() {
+    cat <<EOF
+Usage: $0 [options]
+
+Options:
+  -s    Ajouter le tag selinux
+  -m    Ajouter le tag monitor
+  -a    Lancer tous les tags
+  -h    Afficher cette aide
+
+Exemples:
+  $0          → ssh, cron, ports, packages
+  $0 -s       → ajoute selinux
+  $0 -m       → ajoute monitor
+  $0 -sm      → ajoute selinux et monitor
+  $0 -a       → lance toute la configuration
+
+EOF
+}
+
+TAGS="ssh,cron,ports,packages"
+
+while getopts "smha" opt; do
+    case $opt in
+        s)
+            TAGS="$TAGS,selinux"
+            ;;
+        m)
+            TAGS="$TAGS,monitor"
+            ;;
+        a)
+            TAGS="ssh,cron,ports,packages,selinux,monitor"
+            ;;
+        h) 
+            usage
+            exit 0
+            ;;
+        *)
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+if [ ! -d ".venv" ]; then
+    python3 -m venv .venv
+fi
+
+source .venv/bin/activate
+
+pip install -r requirements.txt
+
+ansible-galaxy collection install ansible.posix
+
+
+
+ansible-playbook -v -i inventory.yaml playbook.yaml -t "$TAGS"
