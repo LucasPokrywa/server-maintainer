@@ -17,3 +17,4 @@ all:
         - nginx
         - grep
         - nano
+        - podman
