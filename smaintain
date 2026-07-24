@@ -7,10 +7,11 @@ usage() {
 Usage: $0 [options]
 
 Options:
-  -s    Ajouter le tag selinux
-  -m    Ajouter le tag monitor
-  -a    Lancer tous les tags
-  -h    Afficher cette aide
+  -s, --selinux    Ajouter le tag selinux
+  -m, --monitor    Ajouter le tag monitor
+  -a, --all        Lancer tous les tags
+  -d, --debug      Lancer avec le debug
+  -h, --help       Afficher cette aide
 
 Exemples:
   $0          → ssh, cron, ports, packages
@@ -24,26 +25,59 @@ EOF
 
 TAGS="ssh,cron,ports,packages"
 
-while getopts "smha" opt; do
-    case $opt in
-        s)
-            TAGS="$TAGS,selinux"
-            ;;
-        m)
-            TAGS="$TAGS,monitor"
-            ;;
-        a)
-            TAGS="ssh,cron,ports,packages,selinux,monitor"
-            ;;
-        h) 
+VERBOSITY=""
+
+add_tag() {
+    [[ ",$TAGS," != *",$1,"* ]] && TAGS="$TAGS,$1"
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -s|--selinux)
+            add_tag selinux
+        ;;
+        -m|--monitor)
+            add_tag monitor
+        ;;
+        -a|--all)
+            add_tag selinux
+            add_tag monitor
+        ;;
+        -d|--debug)
+            shift
+            
+            if [[ -z "$1" ]]; then
+                echo "Erreur : -d attend une valeur entre 1 et 3."
+                exit 1
+            fi
+            
+            case "$1" in
+                1)
+                    VERBOSITY="-v"
+                ;;
+                2)
+                    VERBOSITY="-vv"
+                ;;
+                3)
+                    VERBOSITY="-vvv"
+                ;;
+                *)
+                    echo "Erreur : la valeur de -d doit être 1, 2 ou 3."
+                    exit 1
+                ;;
+            esac
+        ;;
+        -h|--help)
             usage
             exit 0
-            ;;
+        ;;
         *)
+            echo "Option inconnue : $1"
             usage
             exit 1
-            ;;
+        ;;
     esac
+    shift
 done
 
 if [ ! -d ".venv" ]; then
@@ -56,6 +90,7 @@ pip install -r requirements.txt
 
 ansible-galaxy collection install ansible.posix
 
-
-
-ansible-playbook -v -i inventory.yaml playbook.yaml -t "$TAGS"
+ansible-playbook ${VERBOSITY:+$VERBOSITY} \
+-i inventory.yaml \
+playbook.yaml \
+-t "$TAGS"
