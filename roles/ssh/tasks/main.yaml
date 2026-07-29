@@ -23,8 +23,26 @@
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: '^#?PermitRootLogin'
-    line: 'PermitRootLogin no'
+    line: "PermitRootLogin {{ 'prohibit-password' if inventory_hostname in groups['backup_servers'] else 'no' }}"
     state: present
+
+- name: Créer le dossier SSH de root
+  ansible.builtin.file:
+    path: /root/.ssh
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+  when: inventory_hostname in groups['managed_servers']
+
+- name: Générer une clé SSH pour root
+  community.crypto.openssh_keypair:
+    path: /root/.ssh/id_ed25519
+    type: ed25519
+    owner: root
+    group: root
+    mode: '0600'
+  when: inventory_hostname in groups['managed_servers']
 
 - name: Redémarrer le service SSH
   ansible.builtin.service:

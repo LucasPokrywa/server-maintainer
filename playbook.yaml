@@ -57,3 +57,17 @@
             - selinux
       tags:
         - selinux
+
+- name: Configuration des sauvegardes
+  hosts: managed_servers
+  become: true
+
+  tasks:
+    - name: Configuration de backup
+      include_role:
+        name: backup
+        apply:
+          tags:
+            - backup
+      tags:
+        - backup

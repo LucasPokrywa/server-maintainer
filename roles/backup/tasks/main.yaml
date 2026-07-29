@@ -1,0 +1,46 @@
+---
+- name: Installer rsync
+  ansible.builtin.apt:
+    name: rsync
+    state: present
+    update_cache: yes
+
+- name: Ajout des clés sur le serveur de backup
+  ansible.builtin.include_tasks: ssh_backup.yaml
+
+- name: Créer le dossier de stockage sur le serveur backup
+  ansible.builtin.file:
+    path: /opt/backup
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  delegate_to: server-backup
+  run_once: true
+
+- name: Creer dossier log
+  ansible.builtin.file:
+    dest: /var/log/backup
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+    
+
+- name: Copier le script de backup
+  ansible.builtin.template:
+    src: backup_server.sh.j2
+    dest: /usr/local/bin/backup_server.sh
+    owner: root
+    group: root
+    mode: '0700'
+
+
+- name: Ajouter le cron de backup
+  ansible.builtin.cron:
+    name: "Backup serveur quotidien"
+    minute: "0"
+    hour: "0"
+    weekday: "0"
+    job: "/usr/local/bin/backup_server.sh"
+    user: root

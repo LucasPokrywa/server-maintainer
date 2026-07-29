@@ -4,23 +4,37 @@ all:
     selinux:
       state: permissive
       policy: default
-  hosts:
-    server1:
-      ansible_host: 192.168.122.10
-      ansible_user: debian
-      ansible_password: debian
-      firewall_rules:
-        - port: 22
-          protocol: tcp
-          comment: SSH
-          selinux: ssh_port_t
-        - port: 80
-          protocol: tcp
-          comment: HTTP
-          selinux_type: http_port_t
-          
-      packages:
-        - nginx
-        - grep
-        - nano
-        - podman
+  children:
+    managed_servers:
+      hosts:
+        server1:
+          ansible_host: 192.168.122.10
+          ansible_user: debian
+          ansible_password: debian
+          firewall_rules:
+            - port: 22
+              protocol: tcp
+              comment: SSH
+              selinux: ssh_port_t
+            - port: 80
+              protocol: tcp
+              comment: HTTP
+              selinux_type: http_port_t
+          packages:
+            - nginx
+            - grep
+            - nano
+            - podman
+            - sudo
+            - rsync
+
+    backup_servers:
+      hosts:
+        server-backup:
+          ansible_host: 192.168.122.20
+          ansible_user: debian
+          ansible_password: debian
+          firewall_rules: []
+          packages:
+            - rsync
+            - sudo

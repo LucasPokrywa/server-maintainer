@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+
+DATE=$(date +"%Y-%m-%d_%H-%M-%S")
+SERVER_NAME=$(hostname)
+
+
+BACKUP_USER="root"
+BACKUP_SERVER="{{ hostvars['server-backup']['ansible_host'] }}"
+BACKUP_DIR="/opt/backup/${SERVER_NAME}/${DATE}"
+
+LOG="/var/log/backup/backup.log"
+
+ssh "${BACKUP_USER}@${BACKUP_SERVER}" "mkdir -p ${BACKUP_DIR}"
+
+
+echo "[$(date)] Début backup" >> "$LOG"
+
+rsync -aAXHv \
+    --delete \
+    --exclude=/proc \
+    --exclude=/sys \
+    --exclude=/dev \
+    --exclude=/run \
+    --exclude=/tmp \
+    --exclude=/mnt \
+    --exclude=/media \
+    --exclude=/lost+found \
+    --exclude=/swapfile \
+    / \
+    "${BACKUP_USER}@${BACKUP_SERVER}:${BACKUP_DIR}" \
+    >> "$LOG" 2>&1
+
+echo "[$(date)] Backup terminé" >> "$LOG"

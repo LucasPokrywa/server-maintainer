@@ -10,15 +10,9 @@ Options:
   -s, --selinux    Ajouter le tag selinux
   -m, --monitor    Ajouter le tag monitor
   -a, --all        Lancer tous les tags
+  -b, --backup     Ajouter systeme de backup
   -d, --debug      Lancer avec le debug
   -h, --help       Afficher cette aide
-
-Exemples:
-  $0          → ssh, cron, ports, packages
-  $0 -s       → ajoute selinux
-  $0 -m       → ajoute monitor
-  $0 -sm      → ajoute selinux et monitor
-  $0 -a       → lance toute la configuration
 
 EOF
 }
@@ -42,6 +36,9 @@ while [[ $# -gt 0 ]]; do
         -a|--all)
             add_tag selinux
             add_tag monitor
+        ;;
+        -b|--backup)
+            add_tag backup
         ;;
         -d|--debug)
             shift
