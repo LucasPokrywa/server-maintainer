@@ -18,7 +18,6 @@ ssh "${BACKUP_USER}@${BACKUP_SERVER}" "mkdir -p ${BACKUP_DIR}"
 echo "[$(date)] Début backup" >> "$LOG"
 
 rsync -aAXHv \
-    --delete \
     --exclude=/proc \
     --exclude=/sys \
     --exclude=/dev \

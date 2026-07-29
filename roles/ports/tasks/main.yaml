@@ -1,4 +1,26 @@
 ---
+- name: Vérifier que la liste des règles du pare-feu existe
+  ansible.builtin.assert:
+    that:
+      - firewall_rules is defined
+      - firewall_rules is iterable
+      - firewall_rules is not string
+    fail_msg: "firewall_rules doit être une liste de règles."
+
+- name: Valider les règles du pare-feu avant de les appliquer
+  ansible.builtin.assert:
+    that:
+      - item.port is defined
+      - item.port | int > 0
+      - item.port | int <= 65535
+      - item.protocol is defined
+      - item.protocol in ['tcp', 'udp']
+      - item.comment is defined
+    fail_msg: "Règle de pare-feu invalide : {{ item }}"
+  loop: "{{ firewall_rules }}"
+  loop_control:
+    label: "{{ item.comment | default('règle sans nom') }}"
+
 - name: Verification de la présence d'iptables
   ansible.builtin.package:
     name: iptables
@@ -18,12 +40,13 @@
       - RELATED
     jump: ACCEPT
 
-- name: Autoriser SSH
+- name: Autoriser le port SSH utilisé par Ansible
   ansible.builtin.iptables:
     chain: INPUT
     protocol: tcp
-    destination_port: "22"
+    destination_port: "{{ ansible_port | default(22) }}"
     jump: ACCEPT
+    comment: "Connexion SSH Ansible"
 
 - name: Autoriser les ports configurés
   ansible.builtin.iptables:

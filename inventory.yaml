@@ -9,8 +9,8 @@ all:
       hosts:
         server1:
           ansible_host: 192.168.122.10
-          ansible_user: debian
-          ansible_password: debian
+          ansible_user: "{{ lookup('ansible.builtin.env', 'SERVER1_ANSIBLE_USER') }}"
+          ansible_password: "{{ lookup('ansible.builtin.env', 'SERVER1_ANSIBLE_PASSWORD') }}"
           firewall_rules:
             - port: 22
               protocol: tcp
@@ -32,8 +32,8 @@ all:
       hosts:
         server-backup:
           ansible_host: 192.168.122.20
-          ansible_user: debian
-          ansible_password: debian
+          ansible_user: "{{ lookup('ansible.builtin.env', 'BACKUP_SERVER_ANSIBLE_USER') }}"
+          ansible_password: "{{ lookup('ansible.builtin.env', 'BACKUP_SERVER_ANSIBLE_PASSWORD') }}"
           firewall_rules: []
           packages:
             - rsync

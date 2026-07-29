@@ -77,6 +77,29 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+if [ ! -f ".env" ]; then
+    echo "Erreur : fichier .env absent. Copiez .env.example vers .env et renseignez les identifiants."
+    exit 1
+fi
+
+set -a
+source .env
+set +a
+
+REQUIRED_ENV_VARS=(
+    SERVER1_ANSIBLE_USER
+    SERVER1_ANSIBLE_PASSWORD
+    BACKUP_SERVER_ANSIBLE_USER
+    BACKUP_SERVER_ANSIBLE_PASSWORD
+)
+
+for var_name in "${REQUIRED_ENV_VARS[@]}"; do
+    if [ -z "${!var_name:-}" ]; then
+        echo "Erreur : la variable $var_name est absente ou vide dans .env."
+        exit 1
+    fi
+done
+
 if [ ! -d ".venv" ]; then
     python3 -m venv .venv
 fi
@@ -85,7 +108,7 @@ source .venv/bin/activate
 
 pip install -r requirements.txt
 
-ansible-galaxy collection install ansible.posix
+ansible-galaxy collection install -r requirements.yml
 
 ansible-playbook ${VERBOSITY:+$VERBOSITY} \
 -i inventory.yaml \

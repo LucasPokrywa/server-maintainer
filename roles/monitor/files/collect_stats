@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LOG_FILE="/var/log/server_stats.csv"
+LOG_FILE="/opt/monitor/server_stats.csv"
 
 DATE=$(date +"%Y-%m-%d")
 TIME=$(date +"%H:%M:%S")

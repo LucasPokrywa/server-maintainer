@@ -22,10 +22,12 @@
     dest: /opt/monitor/server_stats.csv
     owner: root
     group: root
-    mode: '0755'
+    mode: '0644'
+    force: false
 
 - name: Ajout du script à cron
   ansible.builtin.cron:
-    name: ""
+    name: "Collecte des statistiques serveur"
     minute: "15"
-    job: "/usr/local/bin/server_stats"
+    job: "/usr/local/bin/collect_stats"
+    user: root
