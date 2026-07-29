@@ -49,10 +49,11 @@ cp .env.example .env
 Compléter ensuite `.env` :
 
 ```dotenv
-SERVER1_ANSIBLE_USER=your_server_user
-SERVER1_ANSIBLE_PASSWORD=your_server_password
-BACKUP_SERVER_ANSIBLE_USER=your_backup_user
-BACKUP_SERVER_ANSIBLE_PASSWORD=your_backup_password
+MANAGED_SERVERS_ANSIBLE_USER=your_managed_servers_user
+MANAGED_SERVERS_ANSIBLE_PASSWORD=your_managed_servers_password
+BACKUP_SERVERS_ANSIBLE_USER=your_backup_servers_user
+BACKUP_SERVERS_ANSIBLE_PASSWORD=your_backup_servers_password
+SSH_PUBLIC_KEY_PATH=/home/your_user/.ssh/id_ed25519.pub
 ```
 
 Si une valeur contient des caractères interprétés par Bash, l'entourer de
@@ -69,12 +70,33 @@ L'inventaire fourni contient deux groupes :
 - `managed_servers` : serveurs administrés et sauvegardés ;
 - `backup_servers` : serveurs recevant les sauvegardes.
 
+Les alias des machines sont libres : les rôles utilisent les groupes et ne
+dépendent d'aucun nom d'hôte particulier. Le groupe `backup_servers` doit
+contenir exactement une machine.
+
 Avant un déploiement, adapter au minimum :
 
 - `ansible_host` pour chaque machine ;
-- `ssh_pubkey` avec le chemin de la clé publique locale ;
+- `SSH_PUBLIC_KEY_PATH` dans `.env`, avec le chemin de la clé publique locale ;
 - `firewall_rules` avec les ports réellement nécessaires ;
 - `packages` avec les logiciels à installer.
+
+Les principaux paramètres d'exploitation disposent de valeurs par défaut et
+peuvent être surchargés dans `inventory.yaml` :
+
+```yaml
+all:
+  vars:
+    automatic_reboot: false
+    update_cron_minute: "0"
+    update_cron_hour: "2"
+    update_cron_weekday: "0"
+    monitor_cron_minute: "15"
+    backup_cron_minute: "0"
+    backup_cron_hour: "0"
+    backup_cron_weekday: "0"
+    backup_retention_days: 30
+```
 
 Chaque règle de pare-feu doit déclarer un port valide, le protocole `tcp` ou
 `udp`, ainsi qu'un commentaire. Le port SSH réellement employé par Ansible
@@ -124,7 +146,7 @@ ansible-playbook -i inventory.yaml playbook.yaml --tags monitor
 | `ssh` | Installe les clés et renforce la configuration SSH |
 | `cron` | Programme les mises à jour système le dimanche à 02:00 |
 | `monitor` | Collecte les statistiques chaque heure à la minute 15 |
-| `ports` | Configure les règles iptables et la politique d'entrée |
+| `ports` | Configure et rend persistantes les règles iptables |
 | `packages` | Installe les paquets déclarés dans l'inventaire |
 | `selinux` | Installe, active et configure SELinux |
 | `backup` | Sauvegarde les serveurs gérés le dimanche à 00:00 |
@@ -134,8 +156,8 @@ Les statistiques sont enregistrées dans
 
 Les sauvegardes sont stockées sur le serveur de sauvegarde dans
 `/opt/backup/<serveur>/<date>`. Chaque exécution crée un répertoire horodaté
-et ne supprime pas les sauvegardes précédentes. Une politique de rétention
-doit donc être définie séparément selon l'espace disponible.
+et supprime les répertoires plus anciens que `backup_retention_days`. La
+valeur par défaut est de 30 jours.
 
 ## Précautions
 
@@ -144,13 +166,18 @@ un environnement isolé.
 
 - Le rôle SSH désactive l'authentification par mot de passe.
 - Le rôle `ports` applique une politique `DROP` aux connexions entrantes.
-- Le rôle cron effectue une mise à niveau complète et redémarre le serveur.
+- Le rôle cron effectue une mise à niveau complète. Le redémarrage automatique
+  est désactivé par défaut et se contrôle avec `automatic_reboot`.
 - L'activation de SELinux peut provoquer un redémarrage et un réétiquetage.
 - La première sauvegarde peut consommer beaucoup d'espace disque et de
   bande passante.
 
 Vérifier l'accès par clé SSH et conserver une console de secours avant le
 premier déploiement.
+
+Le rôle SSH valide `sshd_config` avec `sshd -t` avant tout redémarrage. Le
+rôle de sauvegarde enregistre également l'empreinte du serveur de destination
+dans le fichier `known_hosts` de `root`.
 
 ## Vérification
 

@@ -8,6 +8,6 @@
   ansible.posix.authorized_key:
     user: root
     key: "{{ hostvars[item].ssh_pubkey.content | b64decode }}"
-  delegate_to: server-backup
+  delegate_to: "{{ backup_target }}"
   loop: "{{ groups['managed_servers'] }}"
   run_once: true

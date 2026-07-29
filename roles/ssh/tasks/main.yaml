@@ -1,4 +1,29 @@
 ---
+- name: Vérifier la configuration de la clé publique SSH
+  ansible.builtin.assert:
+    that:
+      - ssh_pubkey is defined
+      - ssh_pubkey | length > 0
+    fail_msg: "La variable SSH_PUBLIC_KEY_PATH doit être renseignée."
+  delegate_to: localhost
+  become: false
+
+- name: Vérifier le fichier de clé publique SSH locale
+  ansible.builtin.stat:
+    path: "{{ ssh_pubkey }}"
+  delegate_to: localhost
+  become: false
+  register: ssh_public_key_file
+
+- name: Valider la clé publique SSH locale
+  ansible.builtin.assert:
+    that:
+      - ssh_public_key_file.stat.exists
+      - ssh_public_key_file.stat.isreg
+    fail_msg: "La variable SSH_PUBLIC_KEY_PATH doit désigner une clé publique."
+  delegate_to: localhost
+  become: false
+
 - name: Copie de la clé SSH
   ansible.posix.authorized_key:
     user: "{{ ansible_user }}"
@@ -11,6 +36,9 @@
     regexp: '^#?PubkeyAuthentication'
     line: 'PubkeyAuthentication yes'
     state: present
+  notify:
+    - Valider la configuration SSH
+    - Redémarrer SSH
 
 - name: Désactiver l'authentification par mot de passe SSH
   ansible.builtin.lineinfile:
@@ -18,6 +46,9 @@
     regexp: '^#?PasswordAuthentication'
     line: 'PasswordAuthentication no'
     state: present
+  notify:
+    - Valider la configuration SSH
+    - Redémarrer SSH
 
 - name: Désactiver la connexion root SSH
   ansible.builtin.lineinfile:
@@ -25,6 +56,9 @@
     regexp: '^#?PermitRootLogin'
     line: "PermitRootLogin {{ 'prohibit-password' if inventory_hostname in groups['backup_servers'] else 'no' }}"
     state: present
+  notify:
+    - Valider la configuration SSH
+    - Redémarrer SSH
 
 - name: Créer le dossier SSH de root
   ansible.builtin.file:
@@ -43,8 +77,3 @@
     group: root
     mode: '0600'
   when: inventory_hostname in groups['managed_servers']
-
-- name: Redémarrer le service SSH
-  ansible.builtin.service:
-    name: ssh
-    state: restarted

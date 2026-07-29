@@ -7,8 +7,8 @@
     update_cache: true
 
 - name: Copier le script bash
-  ansible.builtin.copy:
-    src: update_server
+  ansible.builtin.template:
+    src: update_server.sh.j2
     dest: /usr/local/bin/update_server
     owner: root
     group: root
@@ -23,7 +23,8 @@
 - name: Ajouter le script à cron
   ansible.builtin.cron:
     name: "Update hebdomadaire"
-    minute: "0"
-    hour: "2"
-    weekday: "0"
+    minute: "{{ update_cron_minute }}"
+    hour: "{{ update_cron_hour }}"
+    weekday: "{{ update_cron_weekday }}"
     job: "/bin/bash /usr/local/bin/update_server >> /var/log/update_server.log 2>&1"
+    user: root

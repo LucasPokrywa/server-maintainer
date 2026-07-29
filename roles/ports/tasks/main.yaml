@@ -21,16 +21,36 @@
   loop_control:
     label: "{{ item.comment | default('règle sans nom') }}"
 
-- name: Verification de la présence d'iptables
-  ansible.builtin.package:
-    name: iptables
+- name: Désactiver la sauvegarde automatique des règles pendant l'installation
+  ansible.builtin.debconf:
+    name: iptables-persistent
+    question: "{{ item }}"
+    value: "false"
+    vtype: boolean
+  loop:
+    - iptables-persistent/autosave_v4
+    - iptables-persistent/autosave_v6
+
+- name: Installer iptables et sa persistance
+  ansible.builtin.apt:
+    name:
+      - iptables
+      - iptables-persistent
+      - netfilter-persistent
     state: present
+    update_cache: true
+
+- name: Activer la restauration du pare-feu au démarrage
+  ansible.builtin.systemd:
+    name: netfilter-persistent
+    enabled: true
 
 - name: Autoriser le loopback
   ansible.builtin.iptables:
     chain: INPUT
     in_interface: lo
     jump: ACCEPT
+  notify: Sauvegarder les règles iptables
 
 - name: Autoriser les connexions établies
   ansible.builtin.iptables:
@@ -39,6 +59,7 @@
       - ESTABLISHED
       - RELATED
     jump: ACCEPT
+  notify: Sauvegarder les règles iptables
 
 - name: Autoriser le port SSH utilisé par Ansible
   ansible.builtin.iptables:
@@ -47,6 +68,7 @@
     destination_port: "{{ ansible_port | default(22) }}"
     jump: ACCEPT
     comment: "Connexion SSH Ansible"
+  notify: Sauvegarder les règles iptables
 
 - name: Autoriser les ports configurés
   ansible.builtin.iptables:
@@ -56,13 +78,16 @@
     jump: ACCEPT
     comment: "{{ item.comment }}"
   loop: "{{ firewall_rules }}"
+  notify: Sauvegarder les règles iptables
 
 - name: Autoriser les sorties
   ansible.builtin.iptables:
     chain: OUTPUT
     policy: ACCEPT
+  notify: Sauvegarder les règles iptables
 
 - name: Refuser tout le reste en entrée
   ansible.builtin.iptables:
     chain: INPUT
     policy: DROP
+  notify: Sauvegarder les règles iptables

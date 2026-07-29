@@ -1,4 +1,21 @@
 ---
+- name: Vérifier la configuration du serveur de sauvegarde
+  ansible.builtin.assert:
+    that:
+      - groups.get('backup_servers', []) | length == 1
+      - backup_retention_days | int >= 1
+    fail_msg: "Le groupe backup_servers doit contenir exactement un serveur."
+  run_once: true
+
+- name: Sélectionner le serveur de sauvegarde
+  ansible.builtin.set_fact:
+    backup_target: "{{ groups['backup_servers'] | first }}"
+    backup_target_address: >-
+      {{ hostvars[groups['backup_servers'] | first].ansible_host
+         | default(groups['backup_servers'] | first) }}
+    backup_target_port: >-
+      {{ hostvars[groups['backup_servers'] | first].ansible_port | default(22) }}
+
 - name: Installer rsync
   ansible.builtin.apt:
     name: rsync
@@ -8,6 +25,33 @@
 - name: Ajout des clés sur le serveur de backup
   ansible.builtin.include_tasks: ssh_backup.yaml
 
+- name: Créer le dossier SSH de root pour la sauvegarde
+  ansible.builtin.file:
+    path: /root/.ssh
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Lire la clé d'hôte SSH du serveur de sauvegarde
+  ansible.builtin.slurp:
+    src: /etc/ssh/ssh_host_ed25519_key.pub
+  delegate_to: "{{ backup_target }}"
+  register: backup_host_keys
+
+- name: Enregistrer l'empreinte SSH du serveur de sauvegarde
+  ansible.builtin.known_hosts:
+    path: /root/.ssh/known_hosts
+    name: >-
+      {{ ('[' ~ backup_target_address ~ ']:' ~ backup_target_port)
+         if backup_target_port | int != 22 else backup_target_address }}
+    key: >-
+      {{ (('[' ~ backup_target_address ~ ']:' ~ backup_target_port)
+          if backup_target_port | int != 22 else backup_target_address)
+         ~ ' ' ~ (backup_host_keys.content | b64decode | trim) }}
+    hash_host: true
+    state: present
+
 - name: Créer le dossier de stockage sur le serveur backup
   ansible.builtin.file:
     path: /opt/backup
@@ -15,7 +59,7 @@
     owner: root
     group: root
     mode: "0700"
-  delegate_to: server-backup
+  delegate_to: "{{ backup_target }}"
   run_once: true
 
 - name: Creer dossier log
@@ -38,9 +82,9 @@
 
 - name: Ajouter le cron de backup
   ansible.builtin.cron:
-    name: "Backup serveur quotidien"
-    minute: "0"
-    hour: "0"
-    weekday: "0"
+    name: "Backup serveur hebdomadaire"
+    minute: "{{ backup_cron_minute }}"
+    hour: "{{ backup_cron_hour }}"
+    weekday: "{{ backup_cron_weekday }}"
     job: "/usr/local/bin/backup_server.sh"
     user: root

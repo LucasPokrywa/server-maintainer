@@ -1,0 +1,4 @@
+---
+selinux:
+  state: permissive
+  policy: default

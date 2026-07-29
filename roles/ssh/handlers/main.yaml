@@ -1,0 +1,10 @@
+---
+- name: Valider la configuration SSH
+  ansible.builtin.command:
+    cmd: /usr/sbin/sshd -t
+  changed_when: false
+
+- name: Redémarrer SSH
+  ansible.builtin.service:
+    name: ssh
+    state: restarted

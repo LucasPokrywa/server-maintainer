@@ -28,6 +28,6 @@
 - name: Ajout du script à cron
   ansible.builtin.cron:
     name: "Collecte des statistiques serveur"
-    minute: "15"
+    minute: "{{ monitor_cron_minute }}"
     job: "/usr/local/bin/collect_stats"
     user: root

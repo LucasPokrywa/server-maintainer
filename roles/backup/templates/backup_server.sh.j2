@@ -7,17 +7,19 @@ SERVER_NAME=$(hostname)
 
 
 BACKUP_USER="root"
-BACKUP_SERVER="{{ hostvars['server-backup']['ansible_host'] }}"
+BACKUP_SERVER="{{ backup_target_address }}"
+BACKUP_PORT="{{ backup_target_port }}"
 BACKUP_DIR="/opt/backup/${SERVER_NAME}/${DATE}"
 
 LOG="/var/log/backup/backup.log"
 
-ssh "${BACKUP_USER}@${BACKUP_SERVER}" "mkdir -p ${BACKUP_DIR}"
+ssh -p "${BACKUP_PORT}" "${BACKUP_USER}@${BACKUP_SERVER}" "mkdir -p '${BACKUP_DIR}'"
 
 
 echo "[$(date)] Début backup" >> "$LOG"
 
 rsync -aAXHv \
+    -e "ssh -p ${BACKUP_PORT}" \
     --exclude=/proc \
     --exclude=/sys \
     --exclude=/dev \
@@ -30,5 +32,8 @@ rsync -aAXHv \
     / \
     "${BACKUP_USER}@${BACKUP_SERVER}:${BACKUP_DIR}" \
     >> "$LOG" 2>&1
+
+ssh -p "${BACKUP_PORT}" "${BACKUP_USER}@${BACKUP_SERVER}" \
+    "find '/opt/backup/${SERVER_NAME}' -mindepth 1 -maxdepth 1 -type d -mtime +{{ backup_retention_days }} -exec rm -rf -- {} +"
 
 echo "[$(date)] Backup terminé" >> "$LOG"

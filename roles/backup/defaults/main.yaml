@@ -1,0 +1,5 @@
+---
+backup_retention_days: 30
+backup_cron_minute: "0"
+backup_cron_hour: "0"
+backup_cron_weekday: "0"

@@ -1,0 +1,5 @@
+---
+- name: Sauvegarder les règles iptables
+  ansible.builtin.command:
+    cmd: netfilter-persistent save
+  changed_when: true
