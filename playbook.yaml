@@ -31,6 +31,15 @@
       tags:
         - monitor
 
+    - name: Configuration de la rotation des journaux
+      include_role:
+        name: logrotate
+        apply:
+          tags:
+            - logrotate
+      tags:
+        - logrotate
+
     - name: Configuration des ports
       include_role:
         name: ports

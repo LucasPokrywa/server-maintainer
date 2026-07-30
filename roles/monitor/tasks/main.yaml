@@ -1,8 +1,8 @@
 ---
 
 - name: Copie du script
-  ansible.builtin.copy:
-    src: collect_stats
+  ansible.builtin.template:
+    src: collect_stats.sh.j2
     dest: /usr/local/bin/collect_stats
     owner: root
     group: root

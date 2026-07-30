@@ -1,0 +1,14 @@
+---
+- name: Installer logrotate
+  ansible.builtin.apt:
+    name: logrotate
+    state: present
+    update_cache: true
+
+- name: Installer la politique de rotation Server Maintainer
+  ansible.builtin.template:
+    src: server-maintainer.j2
+    dest: /etc/logrotate.d/server-maintainer
+    owner: root
+    group: root
+    mode: "0644"

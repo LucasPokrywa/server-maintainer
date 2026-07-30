@@ -4,7 +4,10 @@
     that:
       - groups.get('backup_servers', []) | length == 1
       - backup_retention_days | int >= 1
-    fail_msg: "Le groupe backup_servers doit contenir exactement un serveur."
+      - backup_min_free_gb | int >= 1
+    fail_msg: >-
+      Le groupe backup_servers doit contenir exactement un serveur et les
+      seuils de sauvegarde doivent être des entiers positifs.
   run_once: true
 
 - name: Sélectionner le serveur de sauvegarde

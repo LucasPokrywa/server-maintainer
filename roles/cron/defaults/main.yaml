@@ -3,3 +3,4 @@ update_cron_minute: "0"
 update_cron_hour: "2"
 update_cron_weekday: "0"
 automatic_reboot: false
+update_alert_command: ""

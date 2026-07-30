@@ -3,3 +3,5 @@ backup_retention_days: 30
 backup_cron_minute: "0"
 backup_cron_hour: "0"
 backup_cron_weekday: "0"
+backup_min_free_gb: 10
+backup_alert_command: ""

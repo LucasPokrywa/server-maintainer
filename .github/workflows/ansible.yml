@@ -34,4 +34,6 @@ jobs:
           BACKUP_SERVERS_ANSIBLE_USER: ci
           BACKUP_SERVERS_ANSIBLE_PASSWORD: ci
           SSH_PUBLIC_KEY_PATH: .env.example
-        run: ansible-playbook -i inventory.yaml playbook.yaml --syntax-check
+        run: |
+          ansible-playbook -i inventory.yaml playbook.yaml --syntax-check
+          ansible-playbook -i inventory.yaml verify_backups.yaml --syntax-check

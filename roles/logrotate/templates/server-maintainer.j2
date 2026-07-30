@@ -1,0 +1,20 @@
+/var/log/update_server.log /var/log/backup/backup.log {
+    weekly
+    rotate {{ logrotate_retention }}
+    missingok
+    notifempty
+    compress
+    delaycompress
+    create 0640 root root
+}
+
+/opt/monitor/server_stats.csv {
+    weekly
+    rotate {{ logrotate_retention }}
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+    create 0644 root root
+}

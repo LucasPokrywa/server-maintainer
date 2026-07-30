@@ -17,7 +17,7 @@ Options:
 EOF
 }
 
-TAGS="ssh,cron,ports,packages"
+TAGS="ssh,cron,ports,packages,logrotate"
 
 VERBOSITY=""
 

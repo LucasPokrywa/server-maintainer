@@ -1,6 +1,27 @@
 #!/bin/bash
 
-set -euo pipefail
+set -Eeuo pipefail
+
+LOCK_FILE="/run/lock/server-maintainer-update.lock"
+LOG="/var/log/update_server.log"
+
+notify_failure() {
+    local exit_code=$?
+    local message="Échec de la mise à jour sur $(hostname), ligne ${BASH_LINENO[0]}, code ${exit_code}"
+    logger -t server-maintainer-update -- "$message"
+{% if update_alert_command | length > 0 %}
+    {{ update_alert_command }} "$message" || true
+{% endif %}
+    exit "$exit_code"
+}
+
+trap notify_failure ERR
+
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+    logger -t server-maintainer-update -- "Mise à jour ignorée : une exécution est déjà active."
+    exit 0
+fi
 
 apt-get update
 apt-get full-upgrade -y

@@ -96,7 +96,24 @@ all:
     backup_cron_hour: "0"
     backup_cron_weekday: "0"
     backup_retention_days: 30
+    backup_min_free_gb: 10
+    logrotate_retention: 8
 ```
+
+Les scripts utilisent `flock` pour empêcher les exécutions simultanées. Les
+échecs sont toujours envoyés au journal système avec `logger`. Une commande
+d'alerte externe peut être configurée pour chaque fonction :
+
+```yaml
+all:
+  vars:
+    update_alert_command: /usr/local/bin/send-alert
+    monitor_alert_command: /usr/local/bin/send-alert
+    backup_alert_command: /usr/local/bin/send-alert
+```
+
+La commande reçoit le message d'erreur comme premier argument. Elle peut par
+exemple transmettre l'alerte à un service de messagerie ou de supervision.
 
 Chaque règle de pare-feu doit déclarer un port valide, le protocole `tcp` ou
 `udp`, ainsi qu'un commentaire. Le port SSH réellement employé par Ansible
@@ -146,6 +163,7 @@ ansible-playbook -i inventory.yaml playbook.yaml --tags monitor
 | `ssh` | Installe les clés et renforce la configuration SSH |
 | `cron` | Programme les mises à jour système le dimanche à 02:00 |
 | `monitor` | Collecte les statistiques chaque heure à la minute 15 |
+| `logrotate` | Assure la rotation et la compression des journaux |
 | `ports` | Configure et rend persistantes les règles iptables |
 | `packages` | Installe les paquets déclarés dans l'inventaire |
 | `selinux` | Installe, active et configure SELinux |
@@ -157,7 +175,12 @@ Les statistiques sont enregistrées dans
 Les sauvegardes sont stockées sur le serveur de sauvegarde dans
 `/opt/backup/<serveur>/<date>`. Chaque exécution crée un répertoire horodaté
 et supprime les répertoires plus anciens que `backup_retention_days`. La
-valeur par défaut est de 30 jours.
+valeur par défaut est de 30 jours. La sauvegarde est annulée si l'espace
+disponible est inférieur à `backup_min_free_gb`, soit 10 Gio par défaut.
+
+Une sauvegarde terminée contient un marqueur
+`.server-maintainer-backup-complete`. Le script ne crée ce marqueur qu'après
+avoir vérifié la présence de `/etc/os-release` et `/etc/passwd`.
 
 ## Précautions
 
@@ -196,6 +219,18 @@ simulation, sous réserve que les modules employés le prennent en charge :
 ```bash
 ansible-playbook -i inventory.yaml playbook.yaml --check --diff
 ```
+
+Vérifier en lecture seule qu'il existe suffisamment de sauvegardes récentes
+et que leurs fichiers essentiels sont présents :
+
+```bash
+ansible-playbook -i inventory.yaml verify_backups.yaml
+```
+
+Ce contrôle améliore la détection des sauvegardes incomplètes, mais ne
+remplace pas un exercice de restauration sur une machine Debian isolée. Une
+restauration réelle doit utiliser une cible explicitement dédiée afin de ne
+pas écraser un serveur existant.
 
 ## Licence
 

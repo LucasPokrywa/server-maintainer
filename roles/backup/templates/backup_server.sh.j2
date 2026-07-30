@@ -1,6 +1,28 @@
 #!/bin/bash
 
-set -e
+set -Eeuo pipefail
+
+LOCK_FILE="/run/lock/server-maintainer-backup.lock"
+LOG="/var/log/backup/backup.log"
+
+notify_failure() {
+    local exit_code=$?
+    local message="Échec de la sauvegarde sur $(hostname), ligne ${BASH_LINENO[0]}, code ${exit_code}"
+    echo "[$(date)] ${message}" >> "$LOG"
+    logger -t server-maintainer-backup -- "$message"
+{% if backup_alert_command | length > 0 %}
+    {{ backup_alert_command }} "$message" || true
+{% endif %}
+    exit "$exit_code"
+}
+
+trap notify_failure ERR
+
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+    logger -t server-maintainer-backup -- "Sauvegarde ignorée : une exécution est déjà active."
+    exit 0
+fi
 
 DATE=$(date +"%Y-%m-%d_%H-%M-%S")
 SERVER_NAME=$(hostname)
@@ -10,11 +32,17 @@ BACKUP_USER="root"
 BACKUP_SERVER="{{ backup_target_address }}"
 BACKUP_PORT="{{ backup_target_port }}"
 BACKUP_DIR="/opt/backup/${SERVER_NAME}/${DATE}"
+MIN_FREE_KB=$(({{ backup_min_free_gb }} * 1024 * 1024))
 
-LOG="/var/log/backup/backup.log"
+AVAILABLE_KB=$(ssh -p "${BACKUP_PORT}" "${BACKUP_USER}@${BACKUP_SERVER}" \
+    "df -Pk /opt/backup | awk 'NR == 2 {print \$4}'")
+
+if [[ ! "$AVAILABLE_KB" =~ ^[0-9]+$ ]] || (( AVAILABLE_KB < MIN_FREE_KB )); then
+    echo "Espace insuffisant sur le serveur de sauvegarde : ${AVAILABLE_KB:-inconnu} Ko disponibles." >&2
+    exit 1
+fi
 
 ssh -p "${BACKUP_PORT}" "${BACKUP_USER}@${BACKUP_SERVER}" "mkdir -p '${BACKUP_DIR}'"
-
 
 echo "[$(date)] Début backup" >> "$LOG"
 
@@ -32,6 +60,9 @@ rsync -aAXHv \
     / \
     "${BACKUP_USER}@${BACKUP_SERVER}:${BACKUP_DIR}" \
     >> "$LOG" 2>&1
+
+ssh -p "${BACKUP_PORT}" "${BACKUP_USER}@${BACKUP_SERVER}" \
+    "test -s '${BACKUP_DIR}/etc/os-release' && test -s '${BACKUP_DIR}/etc/passwd' && touch '${BACKUP_DIR}/.server-maintainer-backup-complete'"
 
 ssh -p "${BACKUP_PORT}" "${BACKUP_USER}@${BACKUP_SERVER}" \
     "find '/opt/backup/${SERVER_NAME}' -mindepth 1 -maxdepth 1 -type d -mtime +{{ backup_retention_days }} -exec rm -rf -- {} +"

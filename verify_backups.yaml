@@ -1,0 +1,48 @@
+---
+- name: Vérifier les sauvegardes disponibles
+  hosts: backup_servers
+  become: true
+  gather_facts: false
+
+  vars:
+    backup_verify_max_age_days: 8
+
+  tasks:
+    - name: Rechercher les marqueurs de sauvegarde récente
+      ansible.builtin.find:
+        paths: /opt/backup
+        patterns: .server-maintainer-backup-complete
+        file_type: file
+        recurse: true
+        age: "-{{ backup_verify_max_age_days }}d"
+      register: recent_backup_markers
+
+    - name: Vérifier qu'une sauvegarde récente existe par serveur géré
+      ansible.builtin.assert:
+        that:
+          - recent_backup_markers.matched >= groups.get('managed_servers', []) | length
+        fail_msg: >-
+          Le nombre de sauvegardes récentes et complètes est inférieur au
+          nombre de serveurs gérés.
+
+    - name: Vérifier les fichiers essentiels des sauvegardes
+      ansible.builtin.stat:
+        path: "{{ item.0.path | dirname }}/{{ item.1 }}"
+      loop: >-
+        {{ recent_backup_markers.files
+           | product(['etc/os-release', 'etc/passwd'])
+           | list }}
+      register: essential_backup_files
+      loop_control:
+        label: "{{ item.0.path | dirname }}/{{ item.1 }}"
+
+    - name: Valider les fichiers essentiels
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.isreg
+          - item.stat.size > 0
+        fail_msg: "Sauvegarde incomplète : {{ item.item.0.path | dirname }}"
+      loop: "{{ essential_backup_files.results }}"
+      loop_control:
+        label: "{{ item.item.0.path | dirname }}/{{ item.item.1 }}"

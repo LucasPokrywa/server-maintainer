@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -Eeuo pipefail
+
+LOCK_FILE="/run/lock/server-maintainer-monitor.lock"
+LOG_FILE="/opt/monitor/server_stats.csv"
+
+notify_failure() {
+    local exit_code=$?
+    local message="Échec de la collecte des statistiques sur $(hostname), ligne ${BASH_LINENO[0]}, code ${exit_code}"
+    logger -t server-maintainer-monitor -- "$message"
+{% if monitor_alert_command | length > 0 %}
+    {{ monitor_alert_command }} "$message" || true
+{% endif %}
+    exit "$exit_code"
+}
+
+trap notify_failure ERR
+
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+    exit 0
+fi
+
+DATE=$(date +"%Y-%m-%d")
+TIME=$(date +"%H:%M:%S")
+
+DISK_SPACE=$(df -P -k / | awk 'NR == 2 {print $2}')
+DISK_USAGE=$(df -P -k / | awk 'NR == 2 {print $5}')
+MEMORY_TOTAL=$(free -m | awk '/^Mem:/ {print $2}')
+MEMORY_USED=$(free -m | awk '/^Mem:/ {print $3}')
+CPU_USAGE=$(LC_ALL=C top -bn1 | awk '/Cpu\(s\)/ {print $2}')
+
+echo "$DATE,$TIME,$DISK_SPACE,$DISK_USAGE,$MEMORY_TOTAL,$MEMORY_USED,$CPU_USAGE" >> "$LOG_FILE"
