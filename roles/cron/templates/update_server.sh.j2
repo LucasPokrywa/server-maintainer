@@ -9,8 +9,8 @@ notify_failure() {
     local exit_code=$?
     local message="Échec de la mise à jour sur $(hostname), ligne ${BASH_LINENO[0]}, code ${exit_code}"
     logger -t server-maintainer-update -- "$message"
-{% if update_alert_command | length > 0 %}
-    {{ update_alert_command }} "$message" || true
+{% if cron_alert_command | length > 0 %}
+    {{ cron_alert_command }} "$message" || true
 {% endif %}
     exit "$exit_code"
 }
@@ -27,6 +27,6 @@ apt-get update
 apt-get full-upgrade -y
 apt-get autoremove -y
 apt-get autoclean
-{% if automatic_reboot | bool %}
+{% if cron_automatic_reboot | bool %}
 reboot
 {% endif %}

@@ -1,6 +1,6 @@
 ---
-update_cron_minute: "0"
-update_cron_hour: "2"
-update_cron_weekday: "0"
-automatic_reboot: false
-update_alert_command: ""
+cron_update_minute: "0"
+cron_update_hour: "2"
+cron_update_weekday: "0"
+cron_automatic_reboot: false
+cron_alert_command: ""

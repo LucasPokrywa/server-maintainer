@@ -1,3 +1,5 @@
 .venv/
 venv/
 .env
+.vault-password
+/group_vars/all/vault.yml

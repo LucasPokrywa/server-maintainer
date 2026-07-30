@@ -40,7 +40,7 @@ git clone git@github.com:LucasPokrywa/server-maintainer.git
 cd server-maintainer
 ```
 
-Créer le fichier local contenant les identifiants :
+Créer le fichier local contenant le chemin de la clé publique :
 
 ```bash
 cp .env.example .env
@@ -49,16 +49,37 @@ cp .env.example .env
 Compléter ensuite `.env` :
 
 ```dotenv
-MANAGED_SERVERS_ANSIBLE_USER=your_managed_servers_user
-MANAGED_SERVERS_ANSIBLE_PASSWORD=your_managed_servers_password
-BACKUP_SERVERS_ANSIBLE_USER=your_backup_servers_user
-BACKUP_SERVERS_ANSIBLE_PASSWORD=your_backup_servers_password
 SSH_PUBLIC_KEY_PATH=/home/your_user/.ssh/id_ed25519.pub
 ```
 
 Si une valeur contient des caractères interprétés par Bash, l'entourer de
 guillemets simples. Le fichier `.env` est ignoré par Git et ne doit jamais
 être ajouté au dépôt.
+
+Créer ensuite le Vault contenant les identifiants :
+
+```bash
+mkdir -p group_vars/all
+cp group_vars/all/vault.yml.example group_vars/all/vault.yml
+openssl rand -hex -out .vault-password 32
+chmod 600 .vault-password group_vars/all/vault.yml
+ansible-vault encrypt \
+  --vault-password-file .vault-password \
+  group_vars/all/vault.yml
+```
+
+Les fichiers `group_vars/all/vault.yml` et `.vault-password` sont ignorés par
+Git. Le premier est chiffré, tandis que le second donne accès à tous les
+secrets : conserver une copie de `.vault-password` dans un gestionnaire de
+secrets sécurisé.
+
+Modifier ultérieurement les identifiants :
+
+```bash
+ansible-vault edit \
+  --vault-password-file .vault-password \
+  group_vars/all/vault.yml
+```
 
 ## Configuration
 
@@ -78,8 +99,8 @@ Avant un déploiement, adapter au minimum :
 
 - `ansible_host` pour chaque machine ;
 - `SSH_PUBLIC_KEY_PATH` dans `.env`, avec le chemin de la clé publique locale ;
-- `firewall_rules` avec les ports réellement nécessaires ;
-- `packages` avec les logiciels à installer.
+- `ports_firewall_rules` avec les ports réellement nécessaires ;
+- `packages_list` avec les logiciels à installer.
 
 Les principaux paramètres d'exploitation disposent de valeurs par défaut et
 peuvent être surchargés dans `inventory.yaml` :
@@ -87,10 +108,10 @@ peuvent être surchargés dans `inventory.yaml` :
 ```yaml
 all:
   vars:
-    automatic_reboot: false
-    update_cron_minute: "0"
-    update_cron_hour: "2"
-    update_cron_weekday: "0"
+    cron_automatic_reboot: false
+    cron_update_minute: "0"
+    cron_update_hour: "2"
+    cron_update_weekday: "0"
     monitor_cron_minute: "15"
     backup_cron_minute: "0"
     backup_cron_hour: "0"
@@ -107,7 +128,7 @@ d'alerte externe peut être configurée pour chaque fonction :
 ```yaml
 all:
   vars:
-    update_alert_command: /usr/local/bin/send-alert
+    cron_alert_command: /usr/local/bin/send-alert
     monitor_alert_command: /usr/local/bin/send-alert
     backup_alert_command: /usr/local/bin/send-alert
 ```
@@ -147,13 +168,15 @@ Exemples :
 ```
 
 Il est également possible d'exécuter directement le playbook après avoir
-chargé les variables de `.env` :
+chargé les variables de `.env` et indiqué le mot de passe Vault :
 
 ```bash
 set -a
 source .env
 set +a
-ansible-playbook -i inventory.yaml playbook.yaml --tags monitor
+ansible-playbook \
+  --vault-password-file .vault-password \
+  -i inventory.yaml playbook.yaml --tags monitor
 ```
 
 ## Rôles
@@ -190,7 +213,7 @@ un environnement isolé.
 - Le rôle SSH désactive l'authentification par mot de passe.
 - Le rôle `ports` applique une politique `DROP` aux connexions entrantes.
 - Le rôle cron effectue une mise à niveau complète. Le redémarrage automatique
-  est désactivé par défaut et se contrôle avec `automatic_reboot`.
+  est désactivé par défaut et se contrôle avec `cron_automatic_reboot`.
 - L'activation de SELinux peut provoquer un redémarrage et un réétiquetage.
 - La première sauvegarde peut consommer beaucoup d'espace disque et de
   bande passante.
@@ -210,27 +233,43 @@ Contrôler la syntaxe du playbook sans l'exécuter :
 set -a
 source .env
 set +a
-ansible-playbook -i inventory.yaml playbook.yaml --syntax-check
+ansible-playbook \
+  --vault-password-file .vault-password \
+  -i inventory.yaml playbook.yaml --syntax-check
 ```
 
 Pour visualiser les changements prévus, Ansible propose aussi le mode
 simulation, sous réserve que les modules employés le prennent en charge :
 
 ```bash
-ansible-playbook -i inventory.yaml playbook.yaml --check --diff
+ansible-playbook \
+  --vault-password-file .vault-password \
+  -i inventory.yaml playbook.yaml --check --diff
 ```
 
 Vérifier en lecture seule qu'il existe suffisamment de sauvegardes récentes
 et que leurs fichiers essentiels sont présents :
 
 ```bash
-ansible-playbook -i inventory.yaml verify_backups.yaml
+ansible-playbook \
+  --vault-password-file .vault-password \
+  -i inventory.yaml verify_backups.yaml
 ```
 
 Ce contrôle améliore la détection des sauvegardes incomplètes, mais ne
 remplace pas un exercice de restauration sur une machine Debian isolée. Une
 restauration réelle doit utiliser une cible explicitement dédiée afin de ne
 pas écraser un serveur existant.
+
+Exécuter les contrôles de qualité locaux :
+
+```bash
+pip install -r requirements-dev.txt
+ANSIBLE_VAULT_PASSWORD_FILE=.vault-password ansible-lint
+```
+
+La CI GitHub exécute les vérifications syntaxiques et `ansible-lint` avec des
+identifiants factices provenant de `vault.yml.example`.
 
 ## Licence
 

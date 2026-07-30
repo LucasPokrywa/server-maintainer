@@ -1,0 +1,5 @@
+---
+vault_managed_servers_ansible_user: your_managed_servers_user
+vault_managed_servers_ansible_password: your_managed_servers_password
+vault_backup_servers_ansible_user: your_backup_servers_user
+vault_backup_servers_ansible_password: your_backup_servers_password

@@ -78,7 +78,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ ! -f ".env" ]; then
-    echo "Erreur : fichier .env absent. Copiez .env.example vers .env et renseignez les identifiants."
+    echo "Erreur : fichier .env absent. Copiez .env.example vers .env."
     exit 1
 fi
 
@@ -87,10 +87,6 @@ source .env
 set +a
 
 REQUIRED_ENV_VARS=(
-    MANAGED_SERVERS_ANSIBLE_USER
-    MANAGED_SERVERS_ANSIBLE_PASSWORD
-    BACKUP_SERVERS_ANSIBLE_USER
-    BACKUP_SERVERS_ANSIBLE_PASSWORD
     SSH_PUBLIC_KEY_PATH
 )
 
@@ -100,6 +96,16 @@ for var_name in "${REQUIRED_ENV_VARS[@]}"; do
         exit 1
     fi
 done
+
+if [ ! -f "group_vars/all/vault.yml" ]; then
+    echo "Erreur : group_vars/all/vault.yml est absent."
+    exit 1
+fi
+
+if [ ! -f ".vault-password" ]; then
+    echo "Erreur : .vault-password est absent."
+    exit 1
+fi
 
 if [ ! -d ".venv" ]; then
     python3 -m venv .venv
@@ -112,6 +118,7 @@ pip install -r requirements.txt
 ansible-galaxy collection install -r requirements.yml
 
 ansible-playbook ${VERBOSITY:+$VERBOSITY} \
+--vault-password-file .vault-password \
 -i inventory.yaml \
 playbook.yaml \
 -t "$TAGS"

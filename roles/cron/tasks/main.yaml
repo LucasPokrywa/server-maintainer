@@ -23,8 +23,8 @@
 - name: Ajouter le script à cron
   ansible.builtin.cron:
     name: "Update hebdomadaire"
-    minute: "{{ update_cron_minute }}"
-    hour: "{{ update_cron_hour }}"
-    weekday: "{{ update_cron_weekday }}"
+    minute: "{{ cron_update_minute }}"
+    hour: "{{ cron_update_hour }}"
+    weekday: "{{ cron_update_weekday }}"
     job: "/bin/bash /usr/local/bin/update_server >> /var/log/update_server.log 2>&1"
     user: root

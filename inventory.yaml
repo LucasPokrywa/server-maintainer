@@ -2,19 +2,19 @@ all:
   vars:
     ssh_pubkey: "{{ lookup('ansible.builtin.env', 'SSH_PUBLIC_KEY_PATH') }}"
     backup_retention_days: 30
-    automatic_reboot: false
-    selinux:
+    cron_automatic_reboot: false
+    selinux_config:
       state: permissive
       policy: default
   children:
     managed_servers:
       vars:
-        ansible_user: "{{ lookup('ansible.builtin.env', 'MANAGED_SERVERS_ANSIBLE_USER') }}"
-        ansible_password: "{{ lookup('ansible.builtin.env', 'MANAGED_SERVERS_ANSIBLE_PASSWORD') }}"
+        ansible_user: "{{ vault_managed_servers_ansible_user }}"
+        ansible_password: "{{ vault_managed_servers_ansible_password }}"
       hosts:
         managed-node:
           ansible_host: 192.168.122.10
-          firewall_rules:
+          ports_firewall_rules:
             - port: 22
               protocol: tcp
               comment: SSH
@@ -23,7 +23,7 @@ all:
               protocol: tcp
               comment: HTTP
               selinux_type: http_port_t
-          packages:
+          packages_list:
             - nginx
             - grep
             - nano
@@ -33,12 +33,12 @@ all:
 
     backup_servers:
       vars:
-        ansible_user: "{{ lookup('ansible.builtin.env', 'BACKUP_SERVERS_ANSIBLE_USER') }}"
-        ansible_password: "{{ lookup('ansible.builtin.env', 'BACKUP_SERVERS_ANSIBLE_PASSWORD') }}"
+        ansible_user: "{{ vault_backup_servers_ansible_user }}"
+        ansible_password: "{{ vault_backup_servers_ansible_password }}"
       hosts:
         backup-node:
           ansible_host: 192.168.122.20
-          firewall_rules: []
-          packages:
+          ports_firewall_rules: []
+          packages_list:
             - rsync
             - sudo

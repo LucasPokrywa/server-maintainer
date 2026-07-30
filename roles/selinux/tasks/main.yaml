@@ -35,8 +35,8 @@
 
 - name: Configurer SELinux
   ansible.posix.selinux:
-    policy: "{{ selinux.policy }}"
-    state: "{{ selinux.state }}"
+    policy: "{{ selinux_config.policy }}"
+    state: "{{ selinux_config.state }}"
 
 
 - name: Vérifier si le module SELinux sshd_wtmp_journal est déjà installé
@@ -65,14 +65,14 @@
     target: '/var/spool/cron/crontabs(/.*)?'
     setype: cron_spool_t
     state: present
-  register: sefcontext_cron
+  register: selinux_sefcontext_cron
   become: true
 
 - name: Appliquer restorecon sur crontabs
   ansible.builtin.command:
     cmd: restorecon -Rv /var/spool/cron/crontabs
   become: true
-  when: sefcontext_cron.changed
+  when: selinux_sefcontext_cron.changed
 
 
 - name: Déclarer les ports SELinux
@@ -81,5 +81,5 @@
     proto: "{{ item.protocol }}"
     setype: "{{ item.selinux_type }}"
     state: present
-  loop: "{{ firewall_rules }}"
+  loop: "{{ ports_firewall_rules }}"
   when: item.selinux_type is defined

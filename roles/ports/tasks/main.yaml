@@ -2,10 +2,10 @@
 - name: Vérifier que la liste des règles du pare-feu existe
   ansible.builtin.assert:
     that:
-      - firewall_rules is defined
-      - firewall_rules is iterable
-      - firewall_rules is not string
-    fail_msg: "firewall_rules doit être une liste de règles."
+      - ports_firewall_rules is defined
+      - ports_firewall_rules is iterable
+      - ports_firewall_rules is not string
+    fail_msg: "ports_firewall_rules doit être une liste de règles."
 
 - name: Valider les règles du pare-feu avant de les appliquer
   ansible.builtin.assert:
@@ -17,7 +17,7 @@
       - item.protocol in ['tcp', 'udp']
       - item.comment is defined
     fail_msg: "Règle de pare-feu invalide : {{ item }}"
-  loop: "{{ firewall_rules }}"
+  loop: "{{ ports_firewall_rules }}"
   loop_control:
     label: "{{ item.comment | default('règle sans nom') }}"
 
@@ -77,7 +77,7 @@
     destination_port: "{{ item.port }}"
     jump: ACCEPT
     comment: "{{ item.comment }}"
-  loop: "{{ firewall_rules }}"
+  loop: "{{ ports_firewall_rules }}"
   notify: Sauvegarder les règles iptables
 
 - name: Autoriser les sorties

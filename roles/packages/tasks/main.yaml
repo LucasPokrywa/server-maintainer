@@ -1,12 +1,12 @@
 ---
 - name: Debug des packages
   ansible.builtin.debug:
-    var: packages
+    var: packages_list
   tags:
     - debug
 
-- name: Ajout des différents packages 
+- name: Ajout des différents packages
   ansible.builtin.package:
     name: "{{ item }}"
     state: present
-  loop: "{{ packages }}"
+  loop: "{{ packages_list }}"

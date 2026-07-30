@@ -1,4 +1,4 @@
 ---
-selinux:
+selinux_config:
   state: permissive
   policy: default

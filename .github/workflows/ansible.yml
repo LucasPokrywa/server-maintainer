@@ -21,19 +21,23 @@ jobs:
           python-version: "3.13"
           cache: pip
 
-      - name: Installer Ansible
-        run: pip install -r requirements.txt
+      - name: Installer Ansible et ansible-lint
+        run: pip install -r requirements-dev.txt
 
       - name: Installer les collections
         run: ansible-galaxy collection install -r requirements.yml
 
+      - name: Préparer les variables de test
+        run: cp group_vars/all/vault.yml.example group_vars/all/vault.yml
+
       - name: Vérifier la syntaxe
         env:
-          MANAGED_SERVERS_ANSIBLE_USER: ci
-          MANAGED_SERVERS_ANSIBLE_PASSWORD: ci
-          BACKUP_SERVERS_ANSIBLE_USER: ci
-          BACKUP_SERVERS_ANSIBLE_PASSWORD: ci
           SSH_PUBLIC_KEY_PATH: .env.example
         run: |
           ansible-playbook -i inventory.yaml playbook.yaml --syntax-check
           ansible-playbook -i inventory.yaml verify_backups.yaml --syntax-check
+
+      - name: Exécuter ansible-lint
+        env:
+          SSH_PUBLIC_KEY_PATH: .env.example
+        run: ansible-lint
